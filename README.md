@@ -38,3 +38,6 @@ But was not able to get the CO2 values (It should be possible but I don't know h
 
 # Raspberry Pi configuration
 One has to use 'sudo [raspi-config](https://www.raspberrypi.com/documentation/computers/configuration.html)' to enable the serial link (but not the login process on it).  To be able to write on /dev/ttyS0 ([gpio pins](https://www.tutorialspoint.com/raspberry_pi/raspberry_pi_gpio_connector.htm) 8 & 10) as a normal user, it must be member of the 'dialout' group ($ sudo adduser $USER dialout).  A possibility to test the serial link is to use [minicom(1)](https://manpages.ubuntu.com/manpages/impish/man1/minicom.1.html) and to short-cut the Rx & Tx pins.  Setting up minicom is a little bit tricky as, by default, hardware handshaking seems to be enabled.
+
+# See also
+* [https://github.com/sensirion/info](https://github.com/sensirion/info)
