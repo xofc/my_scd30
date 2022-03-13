@@ -23,6 +23,46 @@ RH :	30.6
 
 ```
 
+# influx_scd30
+Almost the same program after a little cleanup.  I still should verify the CRC and, maybe, provide a better 'read' mechanism.
+For the moment, the program tries to read too many characters and times out after the device sent it what it has to send.
+That is easy and cleanup the line in case it would receive some garbage.  The output has an
+[influxdb](https://en.wikipedia.org/wiki/InfluxDB) format, making it easy to display the measurements in
+[grafana](https://en.wikipedia.org/wiki/Grafana).  I should replace the 'tag/val' by 'crc_ok/1' or something.
+
+```
+$ ./influx_scd30 
+scd30,tag=val co2=963.6,t=23.1,rh=33.8 1647103638000000000
+scd30,tag=val co2=962.4,t=23.1,rh=33.8 1647103648000000000
+scd30,tag=val co2=962.0,t=23.1,rh=33.8 1647103659000000000
+^C
+$ nohup ./influx_scd30 | curl -sS -i -XPOST 'http://localhost:8086/write?db=mydb' --data-binary @- --no-buffer --include &
+
+$ influx -precision rfc3339
+...
+> use mydb
+Using database mydb
+> select * from scd30 limit 5;
+name: scd30
+time			co2	rh	t	tag
+----			---	--	-	---
+2022-03-07T06:09:00Z	975	35.4	18.6	val
+2022-03-07T06:10:00Z	977.2	34.7	18.8	val
+2022-03-07T06:11:00Z	975.5	34.5	19.1	val
+2022-03-07T06:12:00Z	980.7	34.6	19.2	val
+2022-03-07T06:13:00Z	986.7	34.4	19.3	val
+```
+
+In grafana, after setting the 'datasource' to the 'mydb' database on the local influxd (http://localhost:8086),
+The queries are something like :
+```
+SELECT mean("co2") FROM "scd30" WHERE $timeFilter GROUP BY time($__interval) fill(null)
+SELECT mean("t") FROM "scd30" WHERE $timeFilter GROUP BY time($__interval) fill(null)
+SELECT mean("rh") FROM "scd30" WHERE $timeFilter GROUP BY time($__interval) fill(null)
+```
+
+![grafana graphs http://localhost:3000](my_scd30.20220312.jpg)
+
 # Remarks
 I intended to use i2c but it needs 'clock stretching' and it does not seem to be that easy on a Raspberry Pi.  After attempting to use programs found on the Internet which have many dependencies and I was not able to use at all, I decided to use [modbus](https://en.wikipedia.org/wiki/Modbus) instead of [i2c](https://en.wikipedia.org/wiki/I%C2%B2C).  I first used [mbpoll(1)](https://manpages.ubuntu.com/manpages/impish/man1/mbpoll.1.html) ([git](https://github.com/epsilonrt/mbpoll.git)) and was able to get the expected firmware version (0x342) with
 ```
