@@ -77,7 +77,37 @@ Waiting for a confirmation...
 But was not able to get the CO2 values (It should be possible but I don't know how).
 
 # Raspberry Pi configuration
-One has to use 'sudo [raspi-config](https://www.raspberrypi.com/documentation/computers/configuration.html)' to enable the serial link (but not the login process on it).  To be able to write on /dev/ttyS0 ([gpio pins](https://www.tutorialspoint.com/raspberry_pi/raspberry_pi_gpio_connector.htm) 8 & 10) as a normal user, it must be member of the 'dialout' group ($ sudo adduser $USER dialout).  A possibility to test the serial link is to use [minicom(1)](https://manpages.ubuntu.com/manpages/impish/man1/minicom.1.html) and to short-cut the Rx & Tx pins.  Setting up minicom is a little bit tricky as, by default, hardware handshaking seems to be enabled.
+One has to use 'sudo [raspi-config](https://www.raspberrypi.com/documentation/computers/configuration.html)' to enable the serial link (but not the login process on it).  To be able to write on /dev/ttyS0 ([gpio pins](https://www.tutorialspoint.com/raspberry_pi/raspberry_pi_gpio_connector.htm) 8 & 10) as a normal user, it must be member of the 'dialout' group ($ sudo adduser $USER dialout).  A possibility to test the serial link is to use [minicom(1)](https://manpages.ubuntu.com/manpages/impish/man1/minicom.1.html) and to short-cut the Rx & Tx pins.  Setting up minicom is a little bit tricky as, by default, hardware handshaking seems to be enabled (it is not used on a Raspberry Pi).
+
+# Modbus protocol
+The address of the device is 0x61.  There are 2 types of sent messages : SET (0x06) et GET (0x03). Register address is on 2 bytes (MSB.LSB) and the register values are 2 bytes wide (MSB.LSB).  There is a 2 bytes CRC at the end.  All sent messages are 8 bytes long.  All the responses to the SET messages are 8 bytes long and the response to the GET is 7 bytes long except for the GET Mesures which is 17 bytes long (the 3d byte is the length of the response to the GET message).
+```
+SET   61 06 RR RR VV VV CC CC           --  61 06 RR RR VV VV CC CC                 RR.RR = register number - VV.VV = value
+                                                                                    CC.CC = CRC
+GET   61 03 RR RR 00 01 CC CC           --  61 03 02 VV VV CC CC                    01 = number of expected registers
+                                                                                    02 = length of the response in bytes (except for measurements)
+GET   61 03 00 28 00 06 CC CC               61 03 0C PP PP PP PP TT TT TT TT RH RH RH RH CC CC
+                                                                                    PP.PP.PP.PP = CO2 ppm (float); TT... = temperature; RH...= humididy
+
+START MEASUREMENT      61 06 00 36 pp pp CC CC    --  61 06 00 36 pp pp CC CC       pp.pp Atmospheric pressure in mBar (or 00.00)
+STOP  MEASUREMENT      61 06 00 37 00 01 CC CC    --  61 06 00 37 00 01 CC CC
+SET Dtime              61 06 00 25 SS SS CC CC    --  61 06 00 25 SS SS CC CC       SS.SS seconds between 2 measures
+SET AutoCalibration    61 06 00 3A 00 AA CC CC    --  61 06 00 3A 00 AA CC CC       AA=01 autocalibration on -- AA=00 autocalibration off
+SET ppm0               61 06 00 39 PP PP CC CC    --  61 06 00 39 PP PP CC CC       PP.PP = PPM0 (uint16)
+SET Delta.temperature  61 06 00 3B TT TT CC CC    --  61 06 00 3B TT TT CC CC       TT.TT = delta temperature in 0.01 Kelvin (uint16)
+SET Altitude           61 06 00 38 AA AA CC CC    --  61 06 00 38 AA AA CC CC       AA.AA = Altitude in meters (uint16)
+Soft RESET             61 06 00 34 00 01 CC CC    --  
+
+GET Dtime              61 03 00 25 00 01 CC CC    --  61 03 02 SS SS CC CC          SS.SS seconds between 2 measures
+GET Ready Status       61 03 00 27 00 01 CC CC    --  61 03 02 00 xx CC CC          xx = 01 when ready
+READ MEASURES          61 03 00 28 00 06 CC CC    --  61 03 0c PP PP PP PP TT TT TT TT HH HH HH HH CC CC      3 * 4 bytes (float value)
+GET Autocalib          61 03 00 3A 00 01 CC CC    --  61 03 02 00 xx CC CC          xx 01/00 ON/OFF
+GET ppm0               61 03 00 39 00 01 CC CC    --  61 03 02 PP PP CC CC          PP.PP  = PPM0
+GET Delta.temperature  61 03 00 3B 00 01 CC CC    --  61 03 02 TT TT CC CC          TT.TT delta temerature in .01 K
+GET Altitude           61 03 00 38 00 01 CC CC    --  61 03 02 AA AA CC CC          AA.AA altitude in meters
+GET fw version         61 03 00 20 00 01 CC CC    --  61 03 02 03 42 CC CC          03.42 = actual firmware version
+(to be verified)
+```
 
 # See also
 * [https://github.com/sensirion/info](https://github.com/sensirion/info)
