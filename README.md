@@ -1,4 +1,4 @@
-# my_scd30
+# my_scd30_V00.c
 A quick little 'C' program to check my [Sensirion SCD30](https://sensirion.com/products/catalog/SCD30/) is working (using modbus on a Raspberry Pi)
 
 It has no dependency at all, it just uses Linux open/ioctl/read/write on a Raspberry's /dev/ttyS0 and the modbus messages are statically copied from the datasheet
@@ -23,7 +23,7 @@ RH :	30.6
 
 ```
 
-# influx_scd30
+# my_scd30_V01.c
 Almost the same program after a little cleanup.  I still should verify the CRC and, maybe, provide a better 'read' mechanism.
 For the moment, the program tries to read too many characters and times out after the device sent it what it has to send.
 That is easy and cleanup the line in case it would receive some garbage.  The output has an
@@ -31,12 +31,12 @@ That is easy and cleanup the line in case it would receive some garbage.  The ou
 [grafana](https://en.wikipedia.org/wiki/Grafana).  I should replace the 'tag/val' by 'crc_ok/1' or something.
 
 ```
-$ ./influx_scd30 
+$ ./my_scd30 
 scd30,tag=val co2=963.6,t=23.1,rh=33.8 1647103638000000000
 scd30,tag=val co2=962.4,t=23.1,rh=33.8 1647103648000000000
 scd30,tag=val co2=962.0,t=23.1,rh=33.8 1647103659000000000
 ^C
-$ nohup ./influx_scd30 | curl -sS -i -XPOST 'http://localhost:8086/write?db=mydb' --data-binary @- --no-buffer --include &
+$ nohup ./my_scd30 | curl -sS -i -XPOST 'http://localhost:8086/write?db=mydb' --data-binary @- --no-buffer --include &
 
 $ influx -precision rfc3339
 ...
