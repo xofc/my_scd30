@@ -1,3 +1,6 @@
+# History
+I'll keep old versions of my_scd30.c under the name my_scd30_V<xx>.c to show how simple it can be.
+
 # my_scd30_V00.c
 A quick little 'C' program to check my [Sensirion SCD30](https://sensirion.com/products/catalog/SCD30/) is working (using modbus on a Raspberry Pi)
 
